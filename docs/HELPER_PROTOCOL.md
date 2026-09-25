@@ -1,5 +1,7 @@
 # Clew headless helper protocol
 
+English | [简体中文](HELPER_PROTOCOL.zh-CN.md)
+
 Protocol version: 1.
 
 Production launch is `--headless --config <path> --token-file <path>`. Verge creates a new token file for each start; the token is never placed on the process command line or logged. `--api-token` is rejected in headless mode. Transport is loopback HTTP; ACL-bound named-pipe/service transport is not implemented.

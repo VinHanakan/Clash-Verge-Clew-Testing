@@ -1,5 +1,7 @@
 # Known limitations
 
+English | [简体中文](KNOWN_LIMITATIONS.zh-CN.md)
+
 - Application interception is Windows IPv4 TCP only. IPv6 and UDP are **not intercepted by this feature**; they continue on the operating system/application's existing network path and can bypass the selected application outlet. This is not a leak-proof or strict blocking mode.
 - An application that explicitly uses a local or remote proxy is not guaranteed to retain its original process identity in Mihomo. Do not assume its HTTP/SOCKS traffic follows the same policy as direct TCP without a separate end-to-end test.
 - Loopback, LAN and DNS behavior follows the current Clew/Mihomo exclusion and resolution paths; this feature is not a whole-system DNS or TUN replacement. The app-proxy module does not change system DNS or system proxy settings.

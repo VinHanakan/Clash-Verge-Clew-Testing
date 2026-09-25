@@ -1,11 +1,13 @@
 # Internal Windows build
 
+English | [简体中文](BUILD.zh-CN.md)
+
 This describes the isolated, unsigned development package. It does not install or launch the app on the build workstation.
 
 ## Inputs
 
 - Windows x64, the repository-pinned Rust/MSVC toolchain, Node/pnpm dependencies, and the repository's existing Visual Studio/Windows SDK installation.
-- Build the pinned Clew helper separately before packaging. The internal package reads `vendor/clew/build/Release/clew.exe` plus its adjacent WinDivert, Brotli and VC143 CRT files. Record their hashes in the build record; do not substitute a helper from a different build directory.
+- Build the vendored Clew helper from the same source revision before packaging. The internal package reads `vendor/clew/build/Release/clew.exe` plus its adjacent WinDivert, Brotli and VC143 CRT files. Record their hashes in the build record; do not substitute a helper from a different build directory.
 - The manual artifact workflow fixes Mihomo stable to `v1.19.31` and resolves the rolling Alpha once at build start. The precise Alpha version, helper and sidecar SHA-256, and source commit are recorded in `build-provenance.json`; Alpha assets may be removed upstream later. The package must not depend on `CLEW_DEV_HELPER_PATH`.
 
 ## Commands (PowerShell, repository root)

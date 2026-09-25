@@ -1,5 +1,7 @@
 # Clash Verge Clew Testing
 
+English | [简体中文](README.zh-CN.md)
+
 This is an independent experimental fork of [Clash Verge Rev](https://github.com/clash-verge-rev/clash-verge-rev), **not** an official release or support channel. Modification notice: this fork adds application-proxy integration, related UI changes, and independent branding through September 2026. The standalone Windows installer is disabled until service and uninstall isolation is verified. Only the restricted `internal-test` package is eligible for manually triggered Actions artifacts; there are no GitHub Releases or automatic updates.
 
 ## Testing build lineage
@@ -27,4 +29,4 @@ Before any public release, isolate the service and uninstall paths and audit rep
 
 ## Development
 
-See [build instructions](docs/BUILD.md) and the [helper protocol](docs/HELPER_PROTOCOL.md). The internal build requires the pinned Clew helper and Mihomo sidecars; a generic `pnpm build` does not produce an app-proxy installer.
+See [build instructions](docs/BUILD.md) and the [helper protocol](docs/HELPER_PROTOCOL.md). The internal build compiles the vendored Clew helper and prepares Mihomo sidecars; a generic `pnpm build` does not produce an app-proxy installer.
