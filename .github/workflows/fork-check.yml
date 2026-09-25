@@ -1,0 +1,60 @@
+name: Source checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    env:
+      HUSKY: 0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  rust-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo metadata --locked --no-deps --format-version 1 > /dev/null
+
+  windows-rust:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare compile-only Tauri resource placeholders
+        shell: pwsh
+        run: |
+          $config = Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
+          New-Item -ItemType Directory -Path src-tauri/resources -Force | Out-Null
+          foreach ($binary in $config.bundle.externalBin) {
+            $path = Join-Path src-tauri "${binary}-x86_64-pc-windows-msvc.exe"
+            New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force | Out-Null
+            New-Item -ItemType File -Path $path -Force | Out-Null
+          }
+          foreach ($source in $config.bundle.resources.PSObject.Properties.Name) {
+            if ($source -eq 'resources/') { continue }
+            $path = Join-Path src-tauri $source
+            if (-not (Test-Path -LiteralPath $path)) {
+              New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force | Out-Null
+              New-Item -ItemType File -Path $path -Force | Out-Null
+            }
+          }
+          New-Item -ItemType Directory -Path dist -Force | Out-Null
+          Set-Content -LiteralPath dist/index.html -Value '<!doctype html><html><body></body></html>' -NoNewline
+      - run: cargo check --locked --manifest-path src-tauri/Cargo.toml --features internal-test

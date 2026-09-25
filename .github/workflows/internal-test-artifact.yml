@@ -1,0 +1,48 @@
+name: Internal test installer (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-x64:
+    runs-on: windows-2022
+    timeout-minutes: 120
+    env:
+      HUSKY: 0
+      CLEW_INTERNAL_TEST_BUILD: '1'
+      CLEW_TEST_MIHOMO_STABLE_VERSION: v1.19.31
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm web:build
+      - name: Prepare pinned native build inputs
+        shell: pwsh
+        run: ./.github/scripts/prepare-internal-test.ps1
+      - name: Build unsigned internal-test installer
+        shell: pwsh
+        run: pnpm exec tauri build --debug --features internal-test --bundles nsis --config src-tauri/tauri.internal-test.conf.json --no-sign
+      - name: Record binary hashes and source revision
+        id: artifact
+        shell: pwsh
+        run: ./.github/scripts/record-internal-test.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          path: |
+            target/debug/bundle/nsis/*-setup.exe
+            target/debug/bundle/nsis/SHA256SUMS.txt
+            target/debug/bundle/nsis/build-provenance.json
+          if-no-files-found: error
+          retention-days: 14

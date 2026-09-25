@@ -1,0 +1,19 @@
+{
+  "productName": "Clash Verge Clew Internal",
+  "mainBinaryName": "clash-verge-clew-internal",
+  "identifier": "app.clashvergeclew.desktop.internal-test",
+  "build": {
+    "beforeBuildCommand": ""
+  },
+  "bundle": {
+    "active": true,
+    "createUpdaterArtifacts": false
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": []
+      }
+    }
+  }
+}

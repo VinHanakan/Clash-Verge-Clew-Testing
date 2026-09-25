@@ -1,0 +1,197 @@
+// Clew — Process-level Traffic Hijacker
+// main.cpp: thin entry point. Pre-app guards (single-instance, debug
+// console, logger, elevation, Winsock) live here; everything else is in
+// clew::app (see app.hpp).
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#include <WinSock2.h>
+#include <Windows.h>
+#include <ole2.h>
+
+#include <chrono>
+#include <exception>
+#include <fstream>
+#include <iostream>
+#include <span>
+#include <string>
+#include <string_view>
+#include <thread>
+
+#include "app.hpp"
+#include "common/debug_console_session.hpp"
+#include "common/single_instance_guard.hpp"
+#include "common/winsock_session.hpp"
+#include "core/exe_paths.hpp"
+#include "core/log.hpp"
+#include "core/scoped_exit.hpp"
+#include "core/version.hpp"
+
+// ---------------------------------------------------------------------------
+
+static bool is_elevated() {
+    HANDLE raw_token = nullptr;
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &raw_token)) return false;
+    clew::unique_handle token(raw_token);
+
+    TOKEN_ELEVATION elevation;
+    if (DWORD size = 0; !GetTokenInformation(token.get(), TokenElevation, &elevation, sizeof(elevation), &size))
+        return false;
+    return elevation.TokenIsElevated == TRUE;
+}
+
+static void print_usage() {
+    std::cout << "Clew " CLEW_VERSION " - Process-level Traffic Hijacker\n\n";
+    std::cout << "Usage: clew [options]\n\n";
+    std::cout << "Options:\n";
+    std::cout << "  --gui              Launch with WebView2 GUI\n";
+    std::cout << "  --headless         Run the proxy engine without WebView/tray UI\n";
+    std::cout << "  --devtools         Enable WebView2 DevTools (F12)\n";
+    std::cout << "  --static-dir DIR   Path to static files directory\n";
+    std::cout << "  --config PATH      Path to clew.json (default: <exe-dir>/clew.json)\n";
+    std::cout << "  --token-file PATH  Protected file containing the headless bearer token\n";
+    std::cout << "  --minimized        Start hidden in system tray (used by autostart)\n";
+    std::cout << "  --help, -h         Show this help message\n\n";
+}
+
+static clew::cli_options parse_args(int argc, char* argv[]) {
+    clew::cli_options opts;
+    std::span         args(argv, argc);
+    auto              it = args.begin() + 1;
+    while (it != args.end()) {
+        std::string_view arg = *it++;
+        if (arg == "--gui") { opts.gui_mode = true; opts.headless = false; }
+        else if (arg == "--headless") { opts.headless = true; opts.gui_mode = false; }
+        else if (arg == "--devtools") opts.devtools = true;
+        else if (arg == "--static-dir" && it != args.end()) opts.static_dir = *it++;
+        else if (arg == "--config" && it != args.end()) opts.config_path = *it++;
+        else if (arg == "--api-token" && it != args.end()) opts.api_token = *it++; // rejected below
+        else if (arg == "--token-file" && it != args.end()) opts.token_file = *it++;
+        else if (arg == "--minimized") opts.start_minimized = true;
+        else if (arg == "--help" || arg == "-h") opts.help = true;
+    }
+    return opts;
+}
+
+static void setup_logger() {
+    quill::Backend::start();
+
+    // Always log next to clew.exe so the file is predictable regardless of
+    // launcher cwd (Task Scheduler, double-click, shell — all deposit cwd
+    // somewhere different). Quill takes a UTF-8 string so we go through
+    // .string(), which on Windows narrows from the wide path.
+    auto log_path = clew::exe_relative("clew.log").string();
+
+    auto file_sink = quill::Frontend::create_or_get_sink<quill::RotatingFileSink>(
+        log_path,
+        []() {
+            quill::RotatingFileSinkConfig cfg;
+            cfg.set_open_mode('a');
+            cfg.set_rotation_max_file_size(50 * 1024 * 1024);
+            cfg.set_max_backup_files(5);
+            return cfg;
+        }());
+
+    quill::PatternFormatterOptions pattern{
+        "%(time) [%(log_level_short_code)] %(message)",
+        "%Y-%m-%d %H:%M:%S.%Qus"};
+
+#ifndef NDEBUG
+    auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("console");
+    clew::g_logger = quill::Frontend::create_or_get_logger(
+        "clew", {std::move(file_sink), std::move(console_sink)}, pattern);
+#else
+    clew::g_logger = quill::Frontend::create_or_get_logger(
+        "clew", std::move(file_sink), pattern);
+#endif
+}
+
+static constexpr const wchar_t* CLEW_MUTEX_NAME   = L"Global\\Clew_SingleInstance";
+static constexpr const wchar_t* CLEW_WINDOW_CLASS = L"ClewWebViewClass";
+
+static int run_app(int argc, char** argv, HINSTANCE hinstance, bool default_gui_mode) {
+    clew::cli_options opts = parse_args(argc, argv);
+    if (opts.help) { print_usage(); return 0; }
+    if (opts.headless && opts.token_file.empty()) {
+        std::cerr << "--headless requires --token-file\n";
+        return 2;
+    }
+    if (opts.headless && !opts.api_token.empty()) {
+        std::cerr << "plaintext --api-token is disabled for headless startup\n";
+        return 2;
+    }
+    if (opts.headless) {
+        std::ifstream token_stream(opts.token_file, std::ios::binary);
+        if (!token_stream) {
+            std::cerr << "cannot open headless token file\n";
+            return 2;
+        }
+        std::getline(token_stream, opts.api_token, '\0');
+        while (!opts.api_token.empty() && (opts.api_token.back() == '\r' || opts.api_token.back() == '\n'))
+            opts.api_token.pop_back();
+        if (opts.api_token.size() < 32) {
+            std::cerr << "headless token file is invalid\n";
+            return 2;
+        }
+    }
+
+    clew::single_instance_guard instance{CLEW_MUTEX_NAME};
+    if (instance.already_running()) {
+        instance.activate_existing(CLEW_WINDOW_CLASS);
+        return 0;
+    }
+
+#ifndef NDEBUG
+    clew::debug_console_session console;
+#endif
+    if (default_gui_mode && !opts.headless) opts.gui_mode = true;
+
+    setup_logger();
+    if (opts.headless) PC_LOG_INFO("headless credential loaded from protected file");
+    PC_LOG_INFO("=== Clew {} (three-layer refactor) ===", CLEW_VERSION);
+
+    if (!is_elevated()) {
+        PC_LOG_ERROR("Clew requires administrator privileges");
+        return 1;
+    }
+    PC_LOG_INFO("Running with administrator privileges");
+
+    clew::winsock_session winsock;
+    if (!winsock.ok()) {
+        PC_LOG_ERROR("Failed to initialize Winsock");
+        return 1;
+    }
+
+    // WebView2 requires STA-initialized COM before env creation, and
+    // additionally uses OLE drag-drop in the host window. OleInitialize is a
+    // strict superset of CoInitializeEx(STA) that also primes OLE — this is
+    // what Microsoft's official WebView2APISample uses (see AppWindow.cpp).
+    // Without it the --minimized path hits CO_E_NOTINITIALIZED because
+    // SW_HIDE skips the SW_SHOW side-effect that would have implicitly
+    // initialized the apartment.
+    if (HRESULT hr = OleInitialize(nullptr); FAILED(hr)) {
+        PC_LOG_ERROR("OleInitialize failed: {:#x}", static_cast<unsigned int>(hr));
+        return 1;
+    }
+    clew::scoped_exit ole_guard{[] { OleUninitialize(); }};
+
+    try {
+        clew::app a{opts, hinstance};
+        return a.run();
+    } catch (const std::exception& e) {
+        PC_LOG_ERROR("Startup failed: {}", e.what());
+        return 1;
+    }
+}
+
+#ifdef CLEW_HAS_WEBVIEW2
+int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE, LPSTR, int) {
+    return run_app(__argc, __argv, hinstance, /*default_gui=*/true);
+}
+#else
+int main(int argc, char* argv[]) {
+    return run_app(argc, argv, GetModuleHandle(nullptr), /*default_gui=*/false);
+}
+#endif
