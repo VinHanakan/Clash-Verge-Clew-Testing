@@ -6,9 +6,9 @@
 
 ## 测试包版本溯源
 
-- Clash Verge Rev 基线：**2.5.4**。
+- Clash Verge Rev 基线：**2.5.6**（`2a125909e71c26e98fc4b12a4d0eb25b91e2761b`）。
 - Clew 源码导入基线：**v0.10.0**。仓库内的源码已为 headless 集成修改；实际 helper 应以本仓库的源码提交及二进制哈希识别，不能视为未经修改的上游版本。
-- Clash Verge Clew 整合版本：**0.1.0-test.1**。
+- Clash Verge Clew 整合版本：**0.1.0-test.2**。
 - 源码版本：以[手动构建工作流](.github/workflows/internal-test-artifact.yml)所用的确切提交及 Artifact 内的 `build-provenance.json` 为准；`main` 不是固定构建标识。
 - 目标平台：Windows 10/11 x64。工作流成功只代表完成构建，不代表这份安装包已通过安装、实际转发或共存测试。
 
@@ -17,6 +17,8 @@
 Windows 内部测试版通过 [Clew](https://github.com/ymonster/clew-proxy) 和受管 [Mihomo](https://github.com/MetaCubeX/mihomo) listener 提供按应用代理规则。多个应用可选择不同的现有 Mihomo 策略组，或遵循常规规则。应用代理目前**只接管 Windows IPv4 TCP**；IPv6 和 UDP 仍走系统／应用原有网络路径，可能绕过所选出口。规则不会自动启动或恢复；应用代理运行期间禁止切换 profile 或订阅。
 
 内部安装器未签名，仅供隔离环境测试，尚未通过完整生命周期和失败恢复矩阵。不得影响原版 Clash Verge 的安装、服务和系统代理设置。详见[架构](docs/ARCHITECTURE.zh-CN.md)、[构建说明](docs/BUILD.zh-CN.md)及[已知限制](docs/KNOWN_LIMITATIONS.zh-CN.md)。应用更新和上游 deep-link 注册均已禁用。
+
+Windows 外观设置增加了实验性的**透明**主题。选择后需重新打开应用窗口，才能建立原生 Acrylic 背景；尚未在所有 Windows 版本上完成视觉验收。本项目拥有独立的版本化发布渠道和签名密钥前，自动检测更新仍保持禁用。系统代理开关同时核对 Windows 实际状态和本程序预期的主机／端口；地址不一致或读取失败也可能显示关闭，单凭开关显示不能断定系统设置被改动。
 
 ## 来源与许可
 

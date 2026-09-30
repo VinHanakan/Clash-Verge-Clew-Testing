@@ -22,7 +22,7 @@ $hashes | ForEach-Object { "$($_.sha256)  $($_.file)" } |
   Set-Content -LiteralPath (Join-Path $bundleDirectory 'SHA256SUMS.txt') -Encoding utf8
 $provenance = [ordered]@{
   integration_version = $version
-  clash_verge_rev_base = '2.5.4'
+  clash_verge_rev_base = '2.5.6 (2a125909e71c26e98fc4b12a4d0eb25b91e2761b)'
   clew_import_baseline = 'v0.10.0 (vendored with integration modifications)'
   source_commit = $sourceCommit
   source_repository = $env:GITHUB_REPOSITORY

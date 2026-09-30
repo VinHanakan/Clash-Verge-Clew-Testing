@@ -865,7 +865,7 @@ interface IVergeConfig {
   startup_script?: string
   start_page?: string
   clash_core?: string
-  theme_mode?: 'light' | 'dark' | 'system'
+  theme_mode?: 'light' | 'dark' | 'system' | 'glass'
   traffic_graph?: boolean
   enable_memory_usage?: boolean
   enable_group_icon?: boolean
@@ -890,6 +890,7 @@ interface IVergeConfig {
   enable_system_proxy?: boolean
   enable_global_hotkey?: boolean
   enable_dns_settings?: boolean
+  profile_dns_settings?: Record<string, { enabled: boolean }>
   proxy_auto_config?: boolean
   pac_file_content?: string
   proxy_host?: string

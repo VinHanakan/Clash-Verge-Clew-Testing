@@ -1,6 +1,8 @@
 import { Button, ButtonGroup } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 
+import getSystem from '@/utils/get-system'
+
 type ThemeValue = IVergeConfig['theme_mode']
 
 interface Props {
@@ -12,7 +14,9 @@ export const ThemeModeSwitch = (props: Props) => {
   const { value, onChange } = props
   const { t } = useTranslation()
 
-  const modes = ['light', 'dark', 'system'] as const
+  const modes = getSystem() === 'windows'
+    ? (['light', 'dark', 'system', 'glass'] as const)
+    : (['light', 'dark', 'system'] as const)
 
   return (
     <ButtonGroup size="small" sx={{ my: '4px' }}>

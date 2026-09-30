@@ -6,9 +6,9 @@ This is an independent experimental fork of [Clash Verge Rev](https://github.com
 
 ## Testing build lineage
 
-- Clash Verge Rev base: **2.5.4**.
+- Clash Verge Rev base: **2.5.6** (`2a125909e71c26e98fc4b12a4d0eb25b91e2761b`).
 - Clew source import baseline: **v0.10.0** (vendored and modified for headless integration; the built helper is identified by this repository's source commit and its binary hash, not by the unmodified upstream tag alone).
-- Clash Verge Clew integration: **0.1.0-test.1**.
+- Clash Verge Clew integration: **0.1.0-test.2**.
 - Source revision: the exact commit shown on the [manual artifact workflow run](.github/workflows/internal-test-artifact.yml) and in its `build-provenance.json`; `main` is not a build identifier.
 - Target: Windows 10/11 x64. The first artifact from this workflow requires installation and behavior testing; an Actions success alone does not prove installed forwarding or coexistence.
 
@@ -17,6 +17,8 @@ To obtain a limited test installer, open **Actions → Internal test installer (
 The Windows internal build adds per-application proxy rules using [Clew](https://github.com/ymonster/clew-proxy) and managed [Mihomo](https://github.com/MetaCubeX/mihomo) listeners. Multiple applications can use different existing Mihomo strategy groups or follow regular rules. The application-proxy feature currently intercepts **Windows IPv4 TCP only**. IPv6 and UDP use the existing system/application network path and may bypass the app proxy. Rules do not auto-start or auto-resume, and profile/subscription switching is blocked while application proxy runs.
 
 The internal installer is unsigned. It is intended for isolated testing and has not completed the full lifecycle and failure-recovery matrix. The original Clash Verge installation, service, and proxy settings must remain untouched. See [architecture](docs/ARCHITECTURE.md), [build instructions](docs/BUILD.md), and [known limitations](docs/KNOWN_LIMITATIONS.md). Application updates and upstream deep-link registration are disabled.
+
+The Windows appearance settings include an experimental **Glass** theme. Reopen the app window after selecting it so the native Acrylic backdrop can be created; visual behavior has not yet been validated on all Windows versions. Automatic update checks remain disabled until this fork has its own versioned release channel and signing key. The system-proxy switch reflects the observed Windows proxy and the currently expected host/port; a mismatch or read failure can appear as off, so an off indicator alone does not establish that Windows settings were changed.
 
 ## Attribution and licenses
 

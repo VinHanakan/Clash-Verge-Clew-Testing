@@ -1,6 +1,6 @@
 [package]
 name = "clash-verge-clew"
-version = "0.1.0-test.1"
+version = "0.1.0-test.2"
 description = "Per-application IPv4 TCP proxy routing based on Clash Verge Rev"
 authors = ["zzzgydi", "Tunglies", "wonfen", "MystiPanda"]
 license = "GPL-3.0-only"
@@ -94,12 +94,12 @@ scopeguard = "1.2.0"
 tauri-plugin-notification = "2.4.0"
 tokio-stream = "0.1.19"
 backon = { version = "1.6.0", features = ["tokio-sleep"] }
-tauri-plugin-http = "2.6.0"
+tauri-plugin-http = "2.6.1"
 tracing = { workspace = true }
 tauri-plugin-devtools = { version = "2.2.1", optional = true }
 tauri-plugin-mihomo = { git = "https://github.com/clash-verge-rev/tauri-plugin-mihomo", branch = "main" }
 async-trait = "0.1.92"
-clash_verge_service_ipc = { git = "https://github.com/clash-verge-rev/clash-verge-service-ipc.git", tag = "v2.7.2", version = "2.7.2", features = [
+clash_verge_service_ipc = { git = "https://github.com/clash-verge-rev/clash-verge-service-ipc.git", tag = "v2.7.4", version = "2.7.4", features = [
   "client",
 ] }
 arc-swap = "1.9.2"
