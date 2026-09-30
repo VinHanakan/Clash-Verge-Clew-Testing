@@ -109,8 +109,10 @@ export interface TranslationResources {
         }
         proxyTun: {
           status: {
+            systemProxyDifferent: string
             systemProxyDisabled: string
             systemProxyEnabled: string
+            systemProxyUnknown: string
             tunModeDisabled: string
             tunModeEnabled: string
             tunModeServiceRequired: string
@@ -1362,6 +1364,9 @@ export interface TranslationResources {
             installedCheckProxy: string
             installedCoreNotOnService: string
             installedProxyRestored: string
+            otherProxy: string
+            requestedButOff: string
+            stateUnknown: string
           }
           tooltips: {
             systemProxy: string

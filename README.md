@@ -18,7 +18,7 @@ The Windows internal build adds per-application proxy rules using [Clew](https:/
 
 The internal installer is unsigned. It is intended for isolated testing and has not completed the full lifecycle and failure-recovery matrix. The original Clash Verge installation, service, and proxy settings must remain untouched. See [architecture](docs/ARCHITECTURE.md), [build instructions](docs/BUILD.md), and [known limitations](docs/KNOWN_LIMITATIONS.md). Application updates and upstream deep-link registration are disabled.
 
-The Windows appearance settings include an experimental **Glass** theme. Reopen the app window after selecting it so the native Acrylic backdrop can be created; visual behavior has not yet been validated on all Windows versions. Automatic update checks remain disabled until this fork has its own versioned release channel and signing key. The system-proxy switch reflects the observed Windows proxy and the currently expected host/port; a mismatch or read failure can appear as off, so an off indicator alone does not establish that Windows settings were changed.
+The Windows appearance settings include an experimental **Glass** theme. Reopen the app window after selecting it so the native Acrylic backdrop can be created; visual behavior has not yet been validated on all Windows versions. Automatic update checks remain disabled until this fork has its own versioned release channel and signing key. System-proxy status now distinguishes a confirmed disabled OS proxy from an unreadable state or a different active endpoint; this does not change proxy write behavior.
 
 ## Attribution and licenses
 

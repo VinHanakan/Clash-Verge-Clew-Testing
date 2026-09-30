@@ -14,6 +14,7 @@ import {
   revalidateQueries,
   useQuery,
 } from '@/services/query-client'
+import { resolveProxyObservation } from '@/utils/system-proxy-observation'
 
 export const useSystemProxyState = () => {
   const { verge, mutateVerge } = useVerge()
@@ -32,17 +33,15 @@ export const useSystemProxyState = () => {
 
   const { proxy_auto_config, proxy_host } = verge ?? {}
 
-  const indicator = (() => {
-    const host = proxy_host || '127.0.0.1'
-    if (proxy_auto_config) {
-      if (!autoproxy?.enable) return false
-      if (!pacPort) return false
-      return autoproxy.url === `http://${host}:${pacPort}/commands/pac`
-    } else {
-      if (!sysproxy?.enable) return false
-      return sysproxy.server === `${host}:${displayedMixedPort}`
-    }
-  })()
+  const observation = resolveProxyObservation({
+    automatic: !!proxy_auto_config,
+    autoProxy: autoproxy,
+    systemProxy: sysproxy,
+    pacPort,
+    host: proxy_host || '127.0.0.1',
+    mixedPort: displayedMixedPort,
+  })
+  const indicator = observation === 'enabled'
 
   // Coalesce rapid clicks so only the latest requested state is applied.
   const pendingRef = useRef<boolean | null>(null)
@@ -113,6 +112,7 @@ export const useSystemProxyState = () => {
 
   return {
     indicator,
+    observation,
     toggleSystemProxy,
     invalidateProxyState,
   }

@@ -5,7 +5,7 @@ import {
   SettingsRounded,
   WarningRounded,
 } from '@mui/icons-material'
-import { Box, Typography, alpha, useTheme } from '@mui/material'
+import { Box, Tooltip, Typography, alpha, useTheme } from '@mui/material'
 import { useLockFn } from 'ahooks'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -135,7 +135,7 @@ const ProxyControlSwitches = ({
   const { t } = useTranslation()
   const { verge, mutateVerge, patchVerge } = useVerge()
   const { uninstallServiceAndStartSidecar } = useServiceUninstaller()
-  const { indicator: systemProxyIndicator, toggleSystemProxy } =
+  const { indicator: systemProxyIndicator, observation, toggleSystemProxy } =
     useSystemProxyState()
   const { runState, isTunModeAvailable, isLoading } = useSystemState()
   // Offer to uninstall only a service that is actually there and working.
@@ -178,6 +178,13 @@ const ProxyControlSwitches = ({
   const isSystemProxyMode =
     label === t('settings.sections.system.toggles.systemProxy') || !label
   const isTunMode = label === t('settings.sections.system.toggles.tunMode')
+  const proxyWarning = observation === 'unknown'
+    ? t('settings.sections.proxyControl.messages.stateUnknown')
+    : observation === 'different'
+      ? t('settings.sections.proxyControl.messages.otherProxy')
+      : verge?.enable_system_proxy && observation === 'disabled'
+        ? t('settings.sections.proxyControl.messages.requestedButOff')
+        : null
 
   return (
     <Box sx={{ width: '100%', pr: noRightPadding ? 1 : 2 }}>
@@ -186,6 +193,11 @@ const ProxyControlSwitches = ({
           label={t('settings.sections.proxyControl.fields.systemProxy')}
           active={systemProxyIndicator}
           infoTitle={t('settings.sections.proxyControl.tooltips.systemProxy')}
+          extraIcons={proxyWarning && (
+            <Tooltip title={proxyWarning}>
+              <WarningRounded sx={{ color: 'warning.main', ml: 1 }} />
+            </Tooltip>
+          )}
           onInfoClick={() => sysproxyRef.current?.open()}
           onToggle={handleSystemProxyToggle}
           onError={onError}

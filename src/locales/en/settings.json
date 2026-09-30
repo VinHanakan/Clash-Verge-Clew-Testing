@@ -47,7 +47,10 @@
       "messages": {
         "installedCheckProxy": "The service is installed and the core is running through it. Check the system proxy switch and make your change again if it did not take.",
         "installedCoreNotOnService": "The service is installed, but the core is not running through it. Check the core and try again.",
-        "installedProxyRestored": "The service is installed, the core is running through it, and your system proxy change has been applied."
+        "installedProxyRestored": "The service is installed, the core is running through it, and your system proxy change has been applied.",
+        "stateUnknown": "Windows proxy state is unavailable; this does not mean the proxy was turned off.",
+        "otherProxy": "Windows proxy is enabled but points to a different endpoint. No settings were changed by this status check.",
+        "requestedButOff": "Proxy is requested in app settings, but Windows currently reports it off."
       }
     },
     "externalController": {

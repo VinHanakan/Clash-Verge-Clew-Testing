@@ -31,6 +31,8 @@
       "status": {
         "systemProxyEnabled": "System Proxy Enabled",
         "systemProxyDisabled": "System Proxy Disabled",
+        "systemProxyUnknown": "System proxy state could not be read",
+        "systemProxyDifferent": "A different system proxy endpoint is active",
         "tunModeServiceRequired": "TUN Mode Service Required",
         "tunModeEnabled": "TUN Mode Enabled",
         "tunModeDisabled": "TUN Mode Disabled"

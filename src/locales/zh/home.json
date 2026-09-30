@@ -31,6 +31,8 @@
       "status": {
         "systemProxyEnabled": "系统代理已启用，您的应用将通过代理访问网络",
         "systemProxyDisabled": "系统代理已关闭，建议大多数用户打开此选项",
+        "systemProxyUnknown": "无法读取系统代理状态",
+        "systemProxyDifferent": "系统代理已启用，但地址不是本程序当前入口",
         "tunModeServiceRequired": "TUN 模式需要服务模式，请先安装服务",
         "tunModeEnabled": "TUN 模式已启用，应用将通过虚拟网卡访问网络",
         "tunModeDisabled": "TUN 模式已关闭，适用于特殊应用"
