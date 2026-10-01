@@ -1,6 +1,6 @@
 {
   "name": "clash-verge-clew",
-  "version": "0.1.0-test.3",
+  "version": "0.1.0-test.4",
   "license": "GPL-3.0-only",
   "scripts": {
     "prepare": "husky || true",

@@ -8,7 +8,7 @@ This is an independent experimental fork of [Clash Verge Rev](https://github.com
 
 - Clash Verge Rev base: **2.5.6** (`2a125909e71c26e98fc4b12a4d0eb25b91e2761b`).
 - Clew source import baseline: **v0.10.0** (vendored and modified for headless integration; the built helper is identified by this repository's source commit and its binary hash, not by the unmodified upstream tag alone).
-- Clash Verge Clew integration: **0.1.0-test.3**. See the bilingual [testing changes](docs/TESTING_CHANGELOG.md).
+- Clash Verge Clew integration: **0.1.0-test.4**. See the bilingual [testing changes](docs/TESTING_CHANGELOG.md).
 - Source revision: the exact commit shown on the [manual artifact workflow run](.github/workflows/internal-test-artifact.yml) and in its `build-provenance.json`; `main` is not a build identifier.
 - Target: Windows 10/11 x64. The first artifact from this workflow requires installation and behavior testing; an Actions success alone does not prove installed forwarding or coexistence.
 
@@ -16,9 +16,9 @@ To obtain a limited test installer, open **Actions → Internal test installer (
 
 The Windows internal build adds per-application proxy rules using [Clew](https://github.com/ymonster/clew-proxy) and managed [Mihomo](https://github.com/MetaCubeX/mihomo) listeners. Multiple applications can use different existing Mihomo strategy groups or follow regular rules. The application-proxy feature currently intercepts **Windows IPv4 TCP only**. IPv6 and UDP use the existing system/application network path and may bypass the app proxy. This candidate saves forwarding intent and attempts to restore saved rules after restart, potentially requiring UAC confirmation. A failed restore is reported as unavailable. Profile/subscription switching is blocked while application proxy runs.
 
-The internal installer is unsigned. It is intended for isolated testing and has not completed the full lifecycle and failure-recovery matrix. The original Clash Verge installation, service, and proxy settings must remain untouched. See [architecture](docs/ARCHITECTURE.md), [build instructions](docs/BUILD.md), and [known limitations](docs/KNOWN_LIMITATIONS.md). Application updates and upstream deep-link registration are disabled.
+The internal installer is unsigned and has not completed the full lifecycle and failure-recovery matrix. It must not modify the original Clash Verge installation or service. Windows system-proxy settings are shared: normal use lets the user take control through the proxy switch; isolated acceptance instances must explicitly prohibit writes. See [architecture](docs/ARCHITECTURE.md), [build instructions](docs/BUILD.md), and [known limitations](docs/KNOWN_LIMITATIONS.md). No automatic update download source or upstream deep-link registration is enabled.
 
-The experimental Glass theme has been removed. System Information shows the integration and upstream base versions. The isolated build displays actual Windows system-proxy state read-only and rejects proxy write requests instead of reporting a successful toggle. Testing-update checks read only this project's manifest; a published installer would download in the background and require SHA-256 verification before becoming available for manual installation. No automatic download source is published yet; Actions artifacts remain the distribution mechanism. Installer Authenticode signing and signed updater manifests are not implemented.
+The experimental Glass theme has been removed. System Information shows the integration and upstream base versions. Normal installed use supports the system-proxy switch. Only test instances explicitly started with `CLASH_VERGE_DEV_DISABLE_SYSTEM_PROXY_WRITES=1` display Windows system-proxy state read-only and reject write requests. Testing-update checks read only this project's manifest; a published installer would download in the background and require SHA-256 verification before becoming available for manual installation. No automatic download source is published yet; Actions artifacts remain the distribution mechanism. Installer Authenticode signing and signed updater manifests are not implemented.
 
 ## Attribution and licenses
 

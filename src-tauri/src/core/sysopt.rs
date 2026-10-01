@@ -48,12 +48,19 @@ fn system_proxy_writes_disabled_for(value: Option<&str>) -> bool {
 }
 
 fn system_proxy_writes_disabled() -> bool {
-    cfg!(feature = "internal-test")
-        || system_proxy_writes_disabled_for(env::var(DISABLE_SYSTEM_PROXY_WRITES_ENV).ok().as_deref())
+    system_proxy_writes_disabled_for(env::var(DISABLE_SYSTEM_PROXY_WRITES_ENV).ok().as_deref())
 }
 
 fn proxy_state_matches(current: &(Sysproxy, Autoproxy), target: &(Sysproxy, Autoproxy)) -> bool {
     current == target
+}
+
+fn enabled_proxy_target_matches(current: &(Sysproxy, Autoproxy), target: &(Sysproxy, Autoproxy)) -> bool {
+    if target.0.enable {
+        current.0 == target.0
+    } else {
+        !current.0.enable && current.1 == target.1
+    }
 }
 
 /// Authoritative OS state after a failed proxy write.
@@ -617,8 +624,17 @@ impl Sysopt {
         }
 
         if sys.enable || auto.enable {
+            // Windows retains inactive PAC fields, so ownership must use confirmed readback.
+            let observed_after = tokio::task::spawn_blocking(|| {
+                Ok::<_, anyhow::Error>((Sysproxy::get_system_proxy()?, Autoproxy::get_auto_proxy()?))
+            })
+            .await??;
+            anyhow::ensure!(
+                enabled_proxy_target_matches(&observed_after, &target),
+                "System proxy changed before its applied state could be confirmed."
+            );
             if owned_before.is_some() || !proxy_state_matches(&observed_before, &target) {
-                *self.owned_proxy.write() = Some(target.clone());
+                *self.owned_proxy.write() = Some(observed_after);
             }
         } else {
             self.owned_proxy.write().take();
@@ -711,7 +727,7 @@ mod tests {
     use super::{
         AuthoritativeState, BYPASS_SEPARATOR, DEFAULT_BYPASS, OsProxyState, ProxyApplyStep, SystemProxyStateUnknown,
         authoritative_state, authoritative_state_from, classify_os_proxy_state, disable_both,
-        disable_until_the_last_write_is_ours, first_failure, format_bypass, proxy_apply_steps, proxy_state_matches,
+        disable_until_the_last_write_is_ours, enabled_proxy_target_matches, first_failure, format_bypass, proxy_apply_steps, proxy_state_matches,
         recover_from_failed_write, system_proxy_writes_disabled_for, target_is_already_in_place,
     };
     use parking_lot::Mutex;
@@ -785,6 +801,24 @@ mod tests {
         for value in [None, Some("0"), Some("false"), Some("")] {
             assert!(!system_proxy_writes_disabled_for(value));
         }
+    }
+
+    #[test]
+    fn enabled_global_proxy_confirmation_ignores_inactive_pac_metadata() {
+        let target = (
+            Sysproxy { enable: true, host: "127.0.0.1".into(), port: 7897, bypass: "localhost".into() },
+            Autoproxy { enable: false, url: "http://127.0.0.1:33333/pac".into() },
+        );
+        let mut observed = target.clone();
+        observed.1.url.clear();
+        assert!(enabled_proxy_target_matches(&observed, &target));
+        observed.0.port = 7898;
+        assert!(!enabled_proxy_target_matches(&observed, &target));
+        let pac_target = (
+            Sysproxy { enable: false, ..target.0 },
+            Autoproxy { enable: true, ..target.1 },
+        );
+        assert!(!enabled_proxy_target_matches(&observed, &pac_target));
     }
 
     #[test]

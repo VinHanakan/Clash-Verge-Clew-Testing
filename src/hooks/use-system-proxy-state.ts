@@ -49,7 +49,7 @@ export const useSystemProxyState = () => {
   const busyRef = useRef(false)
 
   const toggleSystemProxy = async (enabled: boolean) => {
-    if (!writable) throw new Error('此隔离测试版只读显示 Windows 系统代理，请在当前代理客户端中修改。')
+    if (!writable) throw new Error('此实例已显式启用隔离模式，只读显示 Windows 系统代理。')
     // Roll failed optimistic writes back to the latest confirmed state.
     let confirmed = verge?.enable_system_proxy ?? false
     mutateVerge(

@@ -1,5 +1,14 @@
 # Testing changes / 测试版变更
 
+## 0.1.0-test.4
+
+- 恢复内部安装版正常使用时的系统代理开关；仅显式启用隔离模式的测试实例禁止写入系统代理。
+- Restore system-proxy controls during normal use of the internal installer; only explicitly isolated test instances prohibit system-proxy writes.
+
+For safe local acceptance, set `CLASH_VERGE_DEV_DISABLE_SYSTEM_PROXY_WRITES=1` before launching the isolated instance. Installing the internal package alone does not enable this restriction.
+
+安全的本机隔离验收须在启动前设置 `CLASH_VERGE_DEV_DISABLE_SYSTEM_PROXY_WRITES=1`。仅安装内部测试包不再自动启用此限制。
+
 ## 0.1.0-test.3
 
 - 修复进程搜索展示无关子进程，支持按名称、PID、路径和命令行过滤。
