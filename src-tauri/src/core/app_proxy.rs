@@ -249,6 +249,13 @@ fn rules_file_path() -> Result<PathBuf> {
     Ok(dir.join("rules.json"))
 }
 
+fn save_resume_intent(enabled: bool) -> Result<()> {
+    let path = rules_file_path()?.with_file_name("resume.json");
+    let temporary = path.with_extension("tmp");
+    std::fs::write(&temporary, serde_json::to_vec(&json!({ "enabled": enabled }))?)?;
+    std::fs::rename(temporary, path).context("save application proxy restart preference")
+}
+
 fn load_rules_from_disk() -> Vec<AppProxyRule> {
     if let Ok(path) = rules_file_path() {
         if let Ok(content) = std::fs::read_to_string(path) {
@@ -345,6 +352,10 @@ static DESIRED_LISTENER: OnceLock<Arc<RwLock<Vec<ManagedListenerSpec>>>> = OnceL
 static CONFIG_UPDATE_DEPTH: AtomicUsize = AtomicUsize::new(0);
 static CONFIG_UPDATE_EPOCH: AtomicU64 = AtomicU64::new(0);
 static APP_PROXY_RUNNING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn forwarding_active() -> bool {
+    APP_PROXY_RUNNING.load(Ordering::Acquire)
+}
 
 pub(crate) fn ensure_profile_switch_allowed() -> Result<()> {
     ensure!(
@@ -599,6 +610,21 @@ fn spawn_elevated(helper: &PathBuf, token_path: &PathBuf, config: &PathBuf) -> R
 }
 
 impl AppProxyManager {
+    pub async fn resume_after_startup(&self) {
+        let enabled = rules_file_path().ok()
+            .and_then(|path| std::fs::read(path.with_file_name("resume.json")).ok())
+            .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
+            .is_some_and(|value| value["enabled"] == true);
+        if !enabled { return; }
+        logging!(info, Type::Setup, "Restoring application proxy from saved rules");
+        if let Err(error) = self.start(AppProxyStartRequest {
+            process_cmdline: String::new(), strategy_group: "regular".into(),
+            correlation_id: Some("startup-resume".into()), rules: None,
+        }).await {
+            logging!(error, Type::Setup, "Application proxy restore failed: {error:#}");
+        }
+    }
+
     pub fn clear_startup_error(&self) {
         if let Ok(mut guard) = self.last_startup_error.write() {
             *guard = None;
@@ -888,7 +914,8 @@ impl AppProxyManager {
                 }
             }
         }
-        let path = crate::utils::dirs::app_resources_dir()?.join("clew.exe");
+        let path = crate::utils::dirs::app_resources_dir()?
+            .join("clew").join(env!("CARGO_PKG_VERSION")).join("clew.exe");
         ensure!(
             path.is_file(),
             "managed Clew helper is not installed: {}",
@@ -1435,6 +1462,11 @@ impl AppProxyManager {
             let _ = self.stop_inner(true).await;
             return Err(anyhow!("application proxy did not reach full readiness after rule activation"));
         }
+        if let Err(error) = save_resume_intent(true) {
+            let _ = self.stop_inner(true).await;
+            return Err(error);
+        }
+        super::tray::Tray::global().update_menu_and_icon().await;
         logging!(
             info,
             Type::Cmd,
@@ -1519,7 +1551,11 @@ impl AppProxyManager {
 
     pub async fn stop(&self) -> Result<AppProxyStatus> {
         let _update = self.rules_update_lock.lock().await;
-        self.stop_inner(true).await
+        let preference = save_resume_intent(false);
+        let result = self.stop_inner(true).await;
+        super::tray::Tray::global().update_menu_and_icon().await;
+        preference?;
+        result
     }
 
     pub async fn status(&self) -> AppProxyStatus {

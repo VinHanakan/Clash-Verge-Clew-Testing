@@ -25,8 +25,11 @@ pub async fn get_sys_proxy() -> CmdResult<Mapping> {
 
     let mut map = Mapping::new();
     map.insert("enable".into(), (*enable).into());
+    map.insert("writable".into(), (!Sysopt::global().writes_disabled()).into());
     map.insert("server".into(), format!("{}:{}", host, port).into());
     map.insert("bypass".into(), bypass.as_str().into());
+    let verge = crate::config::Config::verge().await.latest_arc();
+    let _ = crate::core::tray::Tray::global().update_icon(&verge).await;
     Ok(map)
 }
 

@@ -244,6 +244,10 @@ impl IVerge {
         };
 
         let mut needs_fix = false;
+        if config.theme_mode.as_deref() == Some("glass") {
+            config.theme_mode = Some("dark".into());
+            needs_fix = true;
+        }
 
         if let Some(ref core) = config.clash_core {
             let core_str = core.trim();
@@ -303,6 +307,9 @@ impl IVerge {
         match dirs::verge_path() {
             Ok(path) => match help::read_yaml::<Self>(&path).await {
                 Ok(mut config) => {
+                    if config.theme_mode.as_deref() == Some("glass") {
+                        config.theme_mode = Some("dark".into());
+                    }
                     if let Some(start_page) = config.start_page.clone()
                         && start_page == "/home"
                     {

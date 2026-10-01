@@ -128,6 +128,10 @@ mod app_init {
     pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static {
         tauri::generate_handler![
             cmd::start_app_proxy,
+            crate::core::testing_update::check_testing_update,
+            crate::core::testing_update::download_testing_update,
+            crate::core::testing_update::get_testing_update_state,
+            crate::core::testing_update::open_testing_update_folder,
             cmd::stop_app_proxy,
             cmd::clear_app_proxy_error,
             cmd::get_app_proxy_status,

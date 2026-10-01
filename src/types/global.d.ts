@@ -865,7 +865,7 @@ interface IVergeConfig {
   startup_script?: string
   start_page?: string
   clash_core?: string
-  theme_mode?: 'light' | 'dark' | 'system' | 'glass'
+  theme_mode?: 'light' | 'dark' | 'system'
   traffic_graph?: boolean
   enable_memory_usage?: boolean
   enable_group_icon?: boolean

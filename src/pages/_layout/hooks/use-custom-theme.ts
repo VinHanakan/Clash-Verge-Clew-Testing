@@ -75,8 +75,8 @@ export const useCustomTheme = () => {
   const hasUserBackground = !!userBackgroundImage
 
   useEffect(() => {
-    if (theme_mode === 'light' || theme_mode === 'dark' || theme_mode === 'glass') {
-      setMode(theme_mode === 'glass' ? 'dark' : theme_mode)
+    if (theme_mode === 'light' || theme_mode === 'dark') {
+      setMode(theme_mode)
     }
   }, [theme_mode, setMode])
 
@@ -144,8 +144,6 @@ export const useCustomTheme = () => {
   const theme = useMemo(() => {
     const setting = theme_setting || {}
     const dt = mode === 'light' ? defaultTheme : defaultDarkTheme
-    const glass = theme_mode === 'glass'
-    const glassPaper = 'rgba(33, 39, 55, 0.78)'
     let muiTheme: MuiTheme
 
     try {
@@ -166,8 +164,8 @@ export const useCustomTheme = () => {
             secondary: setting.secondary_text || dt.secondary_text,
           },
           background: {
-            paper: glass ? glassPaper : dt.background_color,
-            default: glass ? 'rgba(23, 28, 41, 0.56)' : dt.background_color,
+            paper: dt.background_color,
+            default: dt.background_color,
           },
         },
         shadows: Array(25).fill('none') as Shadows,
@@ -203,16 +201,14 @@ export const useCustomTheme = () => {
 
     const rootEle = document.documentElement
     if (rootEle) {
-      const backgroundColor = glass
-        ? 'rgba(23, 28, 41, 0.56)'
-        : mode === 'light' ? '#ECECEC' : dt.background_color
+      const backgroundColor = mode === 'light' ? '#ECECEC' : dt.background_color
       const selectColor = mode === 'light' ? '#f5f5f5' : '#3E3E3E'
       const scrollColor = mode === 'light' ? '#90939980' : '#555555'
       const dividerColor =
         mode === 'light' ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.06)'
       rootEle.style.setProperty('--divider-color', dividerColor)
       rootEle.style.setProperty('--background-color', backgroundColor)
-      rootEle.style.setProperty('--bg-color', glass ? 'transparent' : backgroundColor)
+      rootEle.style.setProperty('--bg-color', backgroundColor)
       rootEle.style.setProperty('--selection-color', selectColor)
       rootEle.style.setProperty('--scroller-color', scrollColor)
       rootEle.style.setProperty('--primary-main', muiTheme.palette.primary.main)
@@ -302,7 +298,7 @@ export const useCustomTheme = () => {
 
         /* 确保模态框和对话框也使用暗色主题 */
         .MuiDialog-paper {
-          background-color: ${glass ? 'rgba(33, 39, 55, 0.96)' : mode === 'light' ? '#ffffff' : '#2E303D'} !important;
+          background-color: ${mode === 'light' ? '#ffffff' : '#2E303D'} !important;
         }
 
         /* 移除可能的白色点或线条 */

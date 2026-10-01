@@ -93,6 +93,11 @@ async fn resolve_setup() {
     Handle::refresh_clash();
     refresh_tray_menu().await;
     resolve_done();
+    if !matches!(*CoreManager::global().get_running_mode(), crate::core::manager::RunningMode::NotRunning) {
+        use tauri::Manager;
+        let manager = Handle::app_handle().state::<crate::core::app_proxy::AppProxyManager>().inner().clone();
+        manager.resume_after_startup().await;
+    }
 }
 
 pub async fn resolve_reset_async() -> Result<(), anyhow::Error> {

@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import {
   AddRounded,
   CheckRounded,
@@ -52,9 +53,10 @@ import {
   alpha,
   useTheme,
 } from '@mui/material'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BasePage } from '@/components/base'
+import { filterProcessTree } from '@/utils/process-tree-filter'
 
 export type AppProxyRule = {
   id: string
@@ -166,12 +168,14 @@ export default function AppTrafficPage() {
 
   // --- Filtering & Selection ---
   const [processSearch, setProcessSearch] = useState('')
+  const deferredProcessSearch = useDeferredValue(processSearch)
   const [connSearch, setConnSearch] = useState('')
   const [treeTab, setTreeTab] = useState<'all' | 'active' | 'hijacked'>('all')
   const [selectedPid, setSelectedPid] = useState<number | null>(null)
   const [processDetail, setProcessDetail] = useState<AppProxyProcessDetail | null>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [expandedPids, setExpandedPids] = useState<Record<number, boolean>>({})
+  const processScrollRef = useRef<HTMLDivElement>(null)
   const [copiedField, setCopiedField] = useState<string | null>(null)
 
   const inFlightRef = useRef(false)
@@ -732,30 +736,30 @@ export default function AppTrafficPage() {
     return { totalProcesses: total, hijackedProcesses: hijacked }
   }, [processTree])
 
-  // Filter process tree
-  const filterNode = useCallback(
-    (node: AppProxyProcessNode): boolean => {
-      const query = processSearch.trim().toLowerCase()
-      const matchQuery =
-        !query ||
-        node.name.toLowerCase().includes(query) ||
-        String(node.pid).includes(query) ||
-        (node.cmdline && node.cmdline.toLowerCase().includes(query))
-      let matchTab = true
-      if (treeTab === 'hijacked') {
-        matchTab = node.hijacked
-      } else if (treeTab === 'active') {
-        matchTab = activePids.has(node.pid)
-      }
-      const childrenMatch = node.children && node.children.some(filterNode)
-      return (matchQuery && matchTab) || Boolean(childrenMatch)
-    },
-    [processSearch, treeTab, activePids],
+  const filteredTree = useMemo(
+    () => filterProcessTree(processTree, deferredProcessSearch, treeTab, activePids),
+    [processTree, deferredProcessSearch, treeTab, activePids],
   )
-
-  const filteredTree = useMemo(() => {
-    return processTree.filter(filterNode)
-  }, [processTree, filterNode])
+  const visibleProcesses = useMemo(() => {
+    const rows: { node: AppProxyProcessNode; depth: number }[] = []
+    const visit = (nodes: AppProxyProcessNode[], depth: number) => {
+      for (const node of nodes) {
+        rows.push({ node, depth })
+        if (deferredProcessSearch.trim() || expandedPids[node.pid] !== false) {
+          visit(node.children ?? [], depth + 1)
+        }
+      }
+    }
+    visit(filteredTree, 0)
+    return rows
+  }, [filteredTree, expandedPids, deferredProcessSearch])
+  const processVirtualizer = useVirtualizer({
+    count: visibleProcesses.length,
+    getScrollElement: () => processScrollRef.current,
+    estimateSize: () => 38,
+    getItemKey: (index) => visibleProcesses[index].node.pid,
+    overscan: 6,
+  })
 
   // Filter connections table
   const filteredConnections = useMemo(() => {
@@ -781,7 +785,7 @@ export default function AppTrafficPage() {
     const connCount = pidConnCounts.get(node.pid) ?? 0
 
     return (
-      <Box key={node.pid} sx={{ pl: depth > 0 ? 2 : 0, mb: 0.5 }}>
+      <Box key={node.pid} sx={{ pl: Math.min(depth, 5) * 1.5, mb: 0.5 }}>
         <Box
           data-testid={`process-node-${node.pid}`}
           onClick={() => setSelectedPid(isSelected ? null : node.pid)}
@@ -826,6 +830,7 @@ export default function AppTrafficPage() {
 
           <Typography
             variant="body2"
+            title={`${node.name}\n${node.image_path || ''}`}
             sx={{
               fontWeight: isSelected ? 600 : 500,
               flexGrow: 1,
@@ -917,18 +922,13 @@ export default function AppTrafficPage() {
           </Tooltip>
         </Box>
 
-        {hasChildren && (
-          <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-            {node.children!.map((child) => renderTreeNode(child, depth + 1))}
-          </Collapse>
-        )}
       </Box>
     )
   }
 
   return (
     <BasePage
-      title="应用流量监控 (App Traffic Monitor)"
+      title="应用流量监控"
       header={
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Chip
@@ -981,6 +981,7 @@ export default function AppTrafficPage() {
             {isRunning
               ? '应用代理运行中：仅接管命中规则进程的 Windows IPv4 TCP；IPv6/UDP 仍走原有网络路径。点击「停止代理」可恢复为只读监控。'
               : '只读网络监控模式：直接读取系统进程树与实时 TCP 连接。未配置代理规则，未启动驱动截流，未修改系统网络设置。可在下方直接选择应用设置代理。'}
+            {' 正常退出会记住应用代理启停状态；下次启动会尝试恢复，可能需要确认 UAC。'}
           </Typography>
         </Alert>
 
@@ -1234,20 +1235,6 @@ export default function AppTrafficPage() {
                       >
                         {rule.name}
                       </Typography>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          fontFamily: 'monospace',
-                          fontSize: 11,
-                          color: 'text.secondary',
-                          display: 'block',
-                          overflowWrap: 'anywhere',
-                          whiteSpace: 'normal',
-                        }}
-                        title={rule.cmdline_pattern}
-                      >
-                        {rule.cmdline_pattern}
-                      </Typography>
                       <Typography variant="caption"
                         color={rule.strategy_group && rule.strategy_group !== 'regular' && !strategyGroups.includes(rule.strategy_group) ? 'error' : 'primary'}
                         sx={{ display: 'block' }}>
@@ -1331,7 +1318,7 @@ export default function AppTrafficPage() {
                   <Chip size="small" label="快照已过期" color="warning" variant="outlined" />
                 )}
               </Box>
-              <Chip size="small" label={`${processTree.length} 个根节点`} variant="outlined" />
+              <Chip size="small" label={`${visibleProcesses.length} 个可见进程`} variant="outlined" />
             </Box>
 
             <Tabs
@@ -1346,7 +1333,7 @@ export default function AppTrafficPage() {
 
               <TextField
                 size="small"
-                placeholder="搜索进程名或 PID..."
+                placeholder="搜索进程名、PID、路径或命令行..."
                 value={processSearch}
                 onChange={(e) => setProcessSearch(e.target.value)}
                 slotProps={{
@@ -1368,7 +1355,7 @@ export default function AppTrafficPage() {
                 sx={{ mb: 1 }}
               />
 
-              <Box sx={{ flexGrow: 1, overflowY: 'auto', pr: 0.5 }}>
+              <Box ref={processScrollRef} sx={{ flexGrow: 1, minHeight: 0, overflowY: 'auto', pr: 0.5 }}>
                 {filteredTree.length === 0 ? (
                   <Typography
                     variant="body2"
@@ -1378,7 +1365,17 @@ export default function AppTrafficPage() {
                     暂无匹配的进程
                   </Typography>
                 ) : (
-                  filteredTree.map((node) => renderTreeNode(node))
+                  <Box sx={{ height: processVirtualizer.getTotalSize(), position: 'relative' }}>
+                    {processVirtualizer.getVirtualItems().map((row) => {
+                      const { node, depth } = visibleProcesses[row.index]
+                      return (
+                        <Box key={row.key} data-index={row.index} ref={processVirtualizer.measureElement}
+                          sx={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${row.start}px)` }}>
+                          {renderTreeNode(node, depth)}
+                        </Box>
+                      )
+                    })}
+                  </Box>
                 )}
               </Box>
             </Paper>

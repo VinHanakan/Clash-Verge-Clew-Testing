@@ -1,10 +1,10 @@
 $ErrorActionPreference = 'Stop'
 $bundleDirectory = 'target/debug/bundle/nsis'
-$installer = Get-ChildItem -LiteralPath $bundleDirectory -File -Filter '*-setup.exe' | Select-Object -First 1
+$version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+$installer = Get-ChildItem -LiteralPath $bundleDirectory -File -Filter "*_${version}_x64-setup.exe" | Select-Object -First 1
 if (-not $installer) { throw 'NSIS installer was not created' }
 $sourceCommit = (git rev-parse HEAD).Trim()
 $shortCommit = $sourceCommit.Substring(0, 8)
-$version = (Get-Content package.json -Raw | ConvertFrom-Json).version
 $artifactName = "Clash-Verge-Clew_${version}_${shortCommit}_win-x64_unsigned"
 $hashSources = @(
   $installer.FullName,

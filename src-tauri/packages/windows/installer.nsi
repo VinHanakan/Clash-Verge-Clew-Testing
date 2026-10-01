@@ -1157,7 +1157,7 @@ Section Uninstall
 
   ; Delete resources
   {{#each resources}}
-    Delete "$INSTDIR\\{{this.[1]}}"
+    Delete /REBOOTOK "$INSTDIR\\{{this.[1]}}"
   {{/each}}
 
   ; Delete external binaries

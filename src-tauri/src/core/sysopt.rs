@@ -317,6 +317,10 @@ async fn get_bypass() -> String {
 singleton!(Sysopt, SYSOPT);
 
 impl Sysopt {
+    pub const fn writes_disabled(&self) -> bool {
+        self.writes_disabled
+    }
+
     fn new() -> Self {
         Self::default()
     }

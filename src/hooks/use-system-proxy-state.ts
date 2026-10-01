@@ -41,13 +41,15 @@ export const useSystemProxyState = () => {
     host: proxy_host || '127.0.0.1',
     mixedPort: displayedMixedPort,
   })
-  const indicator = observation === 'enabled'
+  const writable = sysproxy?.writable === true
+  const indicator = writable ? observation === 'enabled' : !!(sysproxy?.enable || autoproxy?.enable)
 
   // Coalesce rapid clicks so only the latest requested state is applied.
   const pendingRef = useRef<boolean | null>(null)
   const busyRef = useRef(false)
 
   const toggleSystemProxy = async (enabled: boolean) => {
+    if (!writable) throw new Error('此隔离测试版只读显示 Windows 系统代理，请在当前代理客户端中修改。')
     // Roll failed optimistic writes back to the latest confirmed state.
     let confirmed = verge?.enable_system_proxy ?? false
     mutateVerge(
@@ -112,6 +114,7 @@ export const useSystemProxyState = () => {
 
   return {
     indicator,
+    writable,
     observation,
     toggleSystemProxy,
     invalidateProxyState,

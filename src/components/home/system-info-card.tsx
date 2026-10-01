@@ -16,8 +16,10 @@ import { useSystemState } from '@/hooks/use-system-state'
 import { useVerge } from '@/hooks/use-verge'
 import { getSystemInfo } from '@/services/cmds'
 import { version as appVersion } from '@root/package.json'
+import buildInfo from '@/build-info.json'
 
 import { EnhancedCard } from './enhanced-card'
+import { TestingUpdate } from './testing-update'
 
 export const SystemInfoCard = () => {
   const { t } = useTranslation()
@@ -231,7 +233,17 @@ export const SystemInfoCard = () => {
             v{appVersion}
           </Typography>
         </Stack>
+        {[
+          ['Clash Verge Rev', `v${buildInfo.clashVergeRev}`],
+          ['Clew', `v${buildInfo.clew} (modified)`],
+        ].map(([label, value]) => (
+          <Stack key={label} direction="row" sx={{ justifyContent: 'space-between' }}>
+            <Typography variant="body2" color="text.secondary">{label}</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 'medium' }}>{value}</Typography>
+          </Stack>
+        ))}
       </Stack>
+      <TestingUpdate />
     </EnhancedCard>
   )
 }

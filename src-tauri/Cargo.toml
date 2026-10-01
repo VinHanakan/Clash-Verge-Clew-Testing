@@ -1,6 +1,6 @@
 [package]
 name = "clash-verge-clew"
-version = "0.1.0-test.2"
+version = "0.1.0-test.3"
 description = "Per-application IPv4 TCP proxy routing based on Clash Verge Rev"
 authors = ["zzzgydi", "Tunglies", "wonfen", "MystiPanda"]
 license = "GPL-3.0-only"

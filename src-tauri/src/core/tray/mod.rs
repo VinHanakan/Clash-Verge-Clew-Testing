@@ -62,6 +62,43 @@ pub struct Tray {
 }
 
 impl TrayState {
+    async fn observed_proxy() -> Option<bool> {
+        tokio::task::spawn_blocking(|| {
+            let sys = sysproxy::Sysproxy::get_system_proxy().ok();
+            let pac = sysproxy::Autoproxy::get_auto_proxy().ok();
+            if sys.as_ref().is_some_and(|value| value.enable) || pac.as_ref().is_some_and(|value| value.enable) {
+                Some(true)
+            } else if sys.is_some() && pac.is_some() { Some(false) } else { None }
+        }).await.ok().flatten()
+    }
+
+    async fn status_icon(verge: &IVerge, custom: bool, bytes: &[u8]) -> Result<tauri::image::Image<'static>> {
+        let image = tauri::image::Image::from_bytes(bytes)?;
+        if custom { return Ok(image.to_owned()); }
+        let tun = verge.enable_tun_mode.unwrap_or(false) && crate::core::runstate::RUN_STATE.state().tun_capable();
+        let proxy = Self::observed_proxy().await;
+        let color = if super::app_proxy::forwarding_active() { [34, 197, 94, 255] }
+            else if tun { [59, 130, 246, 255] }
+            else if proxy == Some(true) { [34, 197, 94, 255] }
+            else if proxy.is_none() { [245, 158, 11, 255] }
+            else { [148, 163, 184, 255] };
+        let (width, height) = (image.width(), image.height());
+        let mut pixels = image.rgba().to_vec();
+        let radius = (width.min(height) / 5).max(2) as i32;
+        let (cx, cy) = (width as i32 - radius - 1, height as i32 - radius - 1);
+        for y in (cy - radius).max(0)..height as i32 {
+            for x in (cx - radius).max(0)..width as i32 {
+                let distance = (x - cx).pow(2) + (y - cy).pow(2);
+                if distance <= radius.pow(2) {
+                    let offset = ((y as u32 * width + x as u32) * 4) as usize;
+                    let fill = if distance > (radius - 1).pow(2) { [255, 255, 255, 255] } else { color };
+                    pixels[offset..offset + 4].copy_from_slice(&fill);
+                }
+            }
+        }
+        Ok(tauri::image::Image::new_owned(pixels, width, height))
+    }
+
     async fn get_tray_icon(verge: &IVerge) -> (bool, Cow<'_, [u8]>) {
         let tun_mode = verge.enable_tun_mode.unwrap_or(false) && crate::core::runstate::RUN_STATE.state().tun_capable();
         let system_mode = verge.enable_system_proxy.unwrap_or(false);
@@ -228,7 +265,7 @@ impl Tray {
             return Ok(());
         };
 
-        let (_is_custom_icon, icon_bytes) = TrayState::get_tray_icon(verge).await;
+        let (is_custom_icon, icon_bytes) = TrayState::get_tray_icon(verge).await;
 
         let template = {
             #[cfg(target_os = "macos")]
@@ -240,7 +277,7 @@ impl Tray {
                 false
             }
         };
-        let icon = Some(tauri::image::Image::from_bytes(&icon_bytes)?);
+        let icon = Some(TrayState::status_icon(verge, is_custom_icon, &icon_bytes).await?);
 
         logging_error!(Type::Tray, tray.set_icon_with_as_template(icon, template));
 
@@ -256,7 +293,7 @@ impl Tray {
         let app_handle = handle::Handle::app_handle();
 
         let verge = Config::verge().await.latest_arc();
-        let system_proxy = verge.enable_system_proxy.unwrap_or(false);
+        let system_proxy = TrayState::observed_proxy().await.unwrap_or(false);
         let tun_mode = verge.enable_tun_mode.unwrap_or(false) && crate::core::runstate::RUN_STATE.state().tun_capable();
 
         let switch_str = |flag: bool| {
@@ -288,14 +325,15 @@ impl Tray {
         );
 
         let tooltip = format!(
-            "Clash Verge Clew {}\n{}: {}\n{}: {}\n{}: {}",
+            "Clash Verge Clew {}\n{}: {}\n{}: {}\n{}: {}\nApp Proxy: {}",
             reassembled_version,
             sys_proxy_text,
             switch_str(system_proxy),
             tun_text,
             switch_str(tun_mode),
             profile_text,
-            current_profile_name
+            current_profile_name,
+            switch_str(super::app_proxy::forwarding_active())
         );
 
         let Some(tray) = app_handle.tray_by_id(TRAY_ID) else {
@@ -342,8 +380,8 @@ impl Tray {
 
         let verge = Config::verge().await.data_arc();
 
-        let icon_bytes = TrayState::get_tray_icon(&verge).await.1;
-        let icon = tauri::image::Image::from_bytes(&icon_bytes)?;
+        let (custom, icon_bytes) = TrayState::get_tray_icon(&verge).await;
+        let icon = TrayState::status_icon(&verge, custom, &icon_bytes).await?;
 
         #[cfg(target_os = "linux")]
         let builder = TrayIconBuilder::with_id(TRAY_ID).icon(icon).icon_as_template(false);
@@ -710,7 +748,7 @@ async fn create_tray_menu(
         app_handle,
         MenuIds::SYSTEM_PROXY,
         &texts.system_proxy,
-        true,
+        !super::sysopt::Sysopt::global().writes_disabled(),
         system_proxy_enabled,
         hotkeys.get("toggle_system_proxy").copied(),
     )?;

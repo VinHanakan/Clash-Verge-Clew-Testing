@@ -135,7 +135,7 @@ const ProxyControlSwitches = ({
   const { t } = useTranslation()
   const { verge, mutateVerge, patchVerge } = useVerge()
   const { uninstallServiceAndStartSidecar } = useServiceUninstaller()
-  const { indicator: systemProxyIndicator, observation, toggleSystemProxy } =
+  const { indicator: systemProxyIndicator, writable, observation, toggleSystemProxy } =
     useSystemProxyState()
   const { runState, isTunModeAvailable, isLoading } = useSystemState()
   // Offer to uninstall only a service that is actually there and working.
@@ -192,7 +192,8 @@ const ProxyControlSwitches = ({
         <SwitchRow
           label={t('settings.sections.proxyControl.fields.systemProxy')}
           active={systemProxyIndicator}
-          infoTitle={t('settings.sections.proxyControl.tooltips.systemProxy')}
+          disabled={!writable}
+          infoTitle={writable ? t('settings.sections.proxyControl.tooltips.systemProxy') : '此隔离测试版只读显示 Windows 系统代理，不接管系统代理设置'}
           extraIcons={proxyWarning && (
             <Tooltip title={proxyWarning}>
               <WarningRounded sx={{ color: 'warning.main', ml: 1 }} />

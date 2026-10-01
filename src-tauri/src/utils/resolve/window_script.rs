@@ -2,7 +2,6 @@ pub fn build_window_initial_script(initial_theme_mode: &str, dark_background: &s
     let theme_mode = match initial_theme_mode {
         "dark" => "dark",
         "light" => "light",
-        "glass" => "glass",
         _ => "system",
     };
     format!(
@@ -57,14 +56,12 @@ pub const WINDOW_INITIAL_SCRIPT: &str = r##"
         initialTheme = "dark";
     } else if (initialThemeMode === "light") {
         initialTheme = "light";
-    } else if (initialThemeMode === "glass") {
-        initialTheme = "dark";
     }
 
     const applyInitialTheme = (theme) => {
         const isDark = theme === "dark";
         const root = document.documentElement;
-        const bgColor = initialThemeMode === "glass" ? "transparent" : (isDark ? initialColors.darkBg : initialColors.lightBg);
+        const bgColor = isDark ? initialColors.darkBg : initialColors.lightBg;
         const textColor = isDark ? "#ffffff" : "#333";
         if (root) {
             root.dataset.theme = theme;

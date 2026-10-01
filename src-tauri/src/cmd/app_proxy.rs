@@ -92,6 +92,8 @@ pub async fn get_app_proxy_status(
         "app proxy command=get_app_proxy_status phase=entered correlation_id={correlation_id}"
     );
     let result = state.inner().status().await;
+    let verge = crate::config::Config::verge().await.latest_arc();
+    let _ = crate::core::tray::Tray::global().update_icon(&verge).await;
     logging!(
         info,
         Type::Cmd,

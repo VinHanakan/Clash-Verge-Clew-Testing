@@ -202,7 +202,7 @@ async function updateTauriConfigVersion(newVersion) {
     const updatedData = data.replace(
       /^(\s*"version"\s*:\s*)"[^"]+"/m,
       `$1"${versionWithoutV}"`,
-    )
+    ).replace(/resources\/clew\/[^/]+\//g, `resources/clew/${versionWithoutV}/`)
 
     if (updatedData === data) {
       throw new Error('version field was not found in tauri.conf.json')

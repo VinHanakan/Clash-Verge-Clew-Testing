@@ -1,5 +1,4 @@
 import { Box, Grid } from '@mui/material'
-import { useTheme } from '@mui/material/styles'
 import { useTranslation } from 'react-i18next'
 
 import { BasePage } from '@/components/base'
@@ -7,7 +6,6 @@ import SettingClash from '@/components/setting/setting-clash'
 import SettingSystem from '@/components/setting/setting-system'
 import SettingVergeAdvanced from '@/components/setting/setting-verge-advanced'
 import SettingVergeBasic from '@/components/setting/setting-verge-basic'
-import { useVerge } from '@/hooks/use-verge'
 import { showNotice } from '@/services/notice-service'
 import { useThemeMode } from '@/services/states'
 
@@ -20,11 +18,7 @@ const SettingPage = () => {
 
   const mode = useThemeMode()
   const isDark = mode === 'light' ? false : true
-  const theme = useTheme()
-  const { verge } = useVerge()
-  const cardBackground = verge?.theme_mode === 'glass'
-    ? theme.palette.background.paper
-    : isDark ? '#282a36' : '#ffffff'
+  const cardBackground = isDark ? '#282a36' : '#ffffff'
 
   return (
     <BasePage

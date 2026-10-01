@@ -1,4 +1,5 @@
 pub mod app_proxy;
+pub mod testing_update;
 pub mod autostart;
 pub mod backup;
 pub mod handle;

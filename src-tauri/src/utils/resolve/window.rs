@@ -1,8 +1,6 @@
 use dark_light::{Mode as SystemTheme, detect as detect_system_theme};
 use std::path::PathBuf;
 use tauri::utils::config::Color;
-#[cfg(target_os = "windows")]
-use tauri::{utils::config::WindowEffectsConfig, utils::WindowEffect};
 use tauri::webview::PageLoadEvent;
 use tauri::{Theme, WebviewWindow};
 
@@ -54,15 +52,12 @@ pub async fn build_new_window() -> Result<WebviewWindow, String> {
     let initial_theme_mode = match latest.theme_mode.as_deref() {
         Some("dark") => "dark",
         Some("light") => "light",
-        #[cfg(target_os = "windows")]
-        Some("glass") => "glass",
         _ => "system",
     };
 
     let resolved_theme = match initial_theme_mode {
         "dark" => Some(Theme::Dark),
         "light" => Some(Theme::Light),
-        "glass" => Some(Theme::Dark),
         _ => None,
     };
 
@@ -72,9 +67,7 @@ pub async fn build_new_window() -> Result<WebviewWindow, String> {
         _ => !matches!(detect_system_theme().ok(), Some(SystemTheme::Light)),
     };
 
-    let background_color = if initial_theme_mode == "glass" {
-        Color(0, 0, 0, 0)
-    } else if prefers_dark_background {
+    let background_color = if prefers_dark_background {
         DARK_BACKGROUND_COLOR
     } else {
         LIGHT_BACKGROUND_COLOR
@@ -164,14 +157,6 @@ pub async fn build_new_window() -> Result<WebviewWindow, String> {
         builder = builder.theme(Some(theme));
     }
 
-    #[cfg(target_os = "windows")]
-    if initial_theme_mode == "glass" {
-        builder = builder.transparent(true).effects(WindowEffectsConfig {
-            effects: vec![WindowEffect::Acrylic],
-            ..Default::default()
-        });
-    }
-
     builder = builder.background_color(background_color);
 
     #[cfg(debug_assertions)]
@@ -196,9 +181,7 @@ pub async fn build_new_window() -> Result<WebviewWindow, String> {
                 "builder.build succeeded label=main start_page={}",
                 start_page
             );
-            if initial_theme_mode != "glass" {
-                logging_error!(Type::Window, window.set_background_color(Some(background_color)));
-            }
+            logging_error!(Type::Window, window.set_background_color(Some(background_color)));
             restore_default_size_if_needed(&window);
             // A new page supersedes any reload marker left by the old window.
             #[cfg(target_os = "macos")]

@@ -8,17 +8,17 @@
 
 - Clash Verge Rev 基线：**2.5.6**（`2a125909e71c26e98fc4b12a4d0eb25b91e2761b`）。
 - Clew 源码导入基线：**v0.10.0**。仓库内的源码已为 headless 集成修改；实际 helper 应以本仓库的源码提交及二进制哈希识别，不能视为未经修改的上游版本。
-- Clash Verge Clew 整合版本：**0.1.0-test.2**。
+- Clash Verge Clew 整合版本：**0.1.0-test.3**，详见[中英双语测试版变更](docs/TESTING_CHANGELOG.md)。
 - 源码版本：以[手动构建工作流](.github/workflows/internal-test-artifact.yml)所用的确切提交及 Artifact 内的 `build-provenance.json` 为准；`main` 不是固定构建标识。
 - 目标平台：Windows 10/11 x64。工作流成功只代表完成构建，不代表这份安装包已通过安装、实际转发或共存测试。
 
 获取受限测试安装包：进入 **Actions → Internal test installer (manual) → Run workflow**，在目标源码提交上手动运行。下载生成的 Artifact，查看 `build-provenance.json`，并用 `SHA256SUMS.txt` 核对安装器哈希后，再在隔离的 Windows 测试环境中安装。安装器未签名，可能触发 SmartScreen；它是有保留期限的 Actions Artifact，**不是 Release**。反馈请使用本仓库 Issues，提供源码 SHA、安装包 SHA-256、Windows 版本和脱敏日志；不要上传订阅、凭据或节点配置。
 
-Windows 内部测试版通过 [Clew](https://github.com/ymonster/clew-proxy) 和受管 [Mihomo](https://github.com/MetaCubeX/mihomo) listener 提供按应用代理规则。多个应用可选择不同的现有 Mihomo 策略组，或遵循常规规则。应用代理目前**只接管 Windows IPv4 TCP**；IPv6 和 UDP 仍走系统／应用原有网络路径，可能绕过所选出口。规则不会自动启动或恢复；应用代理运行期间禁止切换 profile 或订阅。
+Windows 内部测试版通过 [Clew](https://github.com/ymonster/clew-proxy) 和受管 [Mihomo](https://github.com/MetaCubeX/mihomo) listener 提供按应用代理规则。多个应用可选择不同的现有 Mihomo 策略组，或遵循常规规则。应用代理目前**只接管 Windows IPv4 TCP**；IPv6 和 UDP 仍走系统／应用原有网络路径，可能绕过所选出口。本候选版会保存启停意图，重启后尝试恢复已保存规则，可能需要确认 UAC；恢复失败会显示不可用状态。应用代理运行期间禁止切换 profile 或订阅。
 
 内部安装器未签名，仅供隔离环境测试，尚未通过完整生命周期和失败恢复矩阵。不得影响原版 Clash Verge 的安装、服务和系统代理设置。详见[架构](docs/ARCHITECTURE.zh-CN.md)、[构建说明](docs/BUILD.zh-CN.md)及[已知限制](docs/KNOWN_LIMITATIONS.zh-CN.md)。应用更新和上游 deep-link 注册均已禁用。
 
-Windows 外观设置增加了实验性的**透明**主题。选择后需重新打开应用窗口，才能建立原生 Acrylic 背景；尚未在所有 Windows 版本上完成视觉验收。本项目拥有独立的版本化发布渠道和签名密钥前，自动检测更新仍保持禁用。系统代理状态现在会区分“Windows 确认关闭”“读取失败”和“已启用但指向其他地址”；此改动不改变代理写入行为。
+实验性透明主题已移除。系统信息显示整合版本及两个上游基线版本。隔离测试版只读显示 Windows 系统代理实际状态，写入请求会明确拒绝，避免显示虚假的切换成功。测试版更新检查只读取本项目清单；未来发布下载源后，客户端会后台下载安装包，经 SHA-256 校验后交由用户择时安装。目前尚未发布自动下载源，仍通过 Actions Artifact 分发。安装程序代码签名及更新清单签名尚未实现。
 
 ## 来源与许可
 

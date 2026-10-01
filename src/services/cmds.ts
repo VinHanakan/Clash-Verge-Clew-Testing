@@ -214,6 +214,7 @@ export async function takeDiscardedKeysNotice() {
 export async function getSystemProxy() {
   return invoke<{
     enable: boolean
+    writable: boolean
     server: string
     bypass: string
   }>('get_sys_proxy')
